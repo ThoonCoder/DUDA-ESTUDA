@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Dudinha.vet 🐾</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F2EDE4; --surface: #FDFAF5; --surface-2: #EDE8DC;
+            --primary: #2D6A4F; --primary-light: #52B788; --primary-pale: #D8F3DC;
+            --accent: #E76F51; --gold: #F4A261;
+            --text: #1C1917; --text-muted: #78716C; --text-light: #A8A29E; --border: #DDD5C8;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif; padding-bottom:90px; min-height:100vh; }
+
+        #toast { position:fixed; top:-60px; left:50%; transform:translateX(-50%); background:var(--text); color:white; padding:12px 22px; border-radius:100px; z-index:9999; font-size:0.85rem; font-weight:700; transition:top 0.4s cubic-bezier(0.34,1.56,0.64,1); white-space:nowrap; box-shadow:0 8px 32px rgba(0,0,0,0.25); pointer-events:none; }
+        #toast.show { top:20px; }
+
+        header { background:var(--primary); padding:18px 20px 22px; position:sticky; top:0; z-index:100; }
+        .header-inner { display:flex; justify-content:space-between; align-items:center; max-width:620px; margin:0 auto; }
+        .header-brand { font-family:'DM Serif Display',serif; font-size:1.55rem; color:white; letter-spacing:-0.5px; }
+        .header-brand span { color:#95D5B2; }
+        .header-right { display:flex; align-items:center; gap:10px; }
+        .streak-badge { background:rgba(255,255,255,0.15); color:white; padding:6px 14px; border-radius:100px; font-size:0.82rem; font-weight:800; display:flex; align-items:center; gap:4px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.2); }
+        .header-avatar { width:38px; height:38px; background:var(--primary-pale); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+
+        main { max-width:620px; margin:0 auto; padding:20px 16px; }
+
+        .screen { display:none; }
+        .screen.active { display:block; animation:screenIn 0.35s cubic-bezier(0.22,1,0.36,1); }
+        @keyframes screenIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+        .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+        .section-title { font-family:'DM Serif Display',serif; font-size:1.45rem; color:var(--text); }
+        .section-sub { font-size:0.78rem; color:var(--text-muted); font-weight:700; }
+
+        .calendar-wrap { display:flex; gap:9px; overflow-x:auto; padding-bottom:8px; margin-bottom:20px; scrollbar-width:none; }
+        .calendar-wrap::-webkit-scrollbar { display:none; }
+        .day-pill { min-width:54px; padding:10px 7px; background:var(--surface); border:1.5px solid var(--border); border-radius:16px; text-align:center; cursor:pointer; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); flex-shrink:0; }
+        .day-pill:hover { transform:translateY(-3px); }
+        .day-pill.active { background:var(--primary); border-color:var(--primary); transform:translateY(-3px); box-shadow:0 8px 20px rgba(45,106,79,0.32); }
+        .day-name { font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:4px; }
+        .day-pill.active .day-name { color:rgba(255,255,255,0.7); }
+        .day-num { font-size:1.15rem; font-weight:800; color:var(--text); }
+        .day-pill.active .day-num { color:white; }
+        .day-dot { width:5px; height:5px; background:var(--primary-light); border-radius:50%; margin:4px auto 0; }
+        .day-pill.active .day-dot { background:rgba(255,255,255,0.6); }
+        .day-spacer { height:9px; }
+
+        .progress-card { background:linear-gradient(135deg,#2D6A4F 0%,#40916C 100%); border-radius:22px; padding:20px; margin-bottom:16px; display:flex; align-items:center; gap:16px; color:white; box-shadow:0 8px 28px rgba(45,106,79,0.25); }
+        .progress-ring-wrap { position:relative; width:66px; height:66px; flex-shrink:0; }
+        .progress-ring-wrap svg { transform:rotate(-90deg); }
+        .progress-ring-bg { fill:none; stroke:rgba(255,255,255,0.2); stroke-width:5; }
+        .progress-ring-fill { fill:none; stroke:white; stroke-width:5; stroke-linecap:round; stroke-dasharray:163; stroke-dashoffset:163; transition:stroke-dashoffset 0.9s cubic-bezier(0.34,1.56,0.64,1); }
+        .progress-ring-pct { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:0.8rem; font-weight:800; color:white; }
+        .progress-greeting { font-family:'DM Serif Display',serif; font-size:1.1rem; margin-bottom:4px; }
+        .progress-sub { font-size:0.78rem; opacity:0.78; }
+
+        .pomo-bar { background:var(--surface); border:1.5px solid var(--border); border-radius:16px; padding:13px 16px; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; cursor:pointer; transition:all 0.2s; }
+        .pomo-bar:hover { border-color:var(--primary); box-shadow:0 4px 14px rgba(45,106,79,0.1); }
+        .pomo-bar-left { display:flex; align-items:center; gap:10px; }
+        .pomo-label { font-weight:800; font-size:0.9rem; }
+        .pomo-sublabel { font-size:0.73rem; color:var(--text-muted); }
+        .pomo-time { font-family:'DM Serif Display',serif; font-size:1.5rem; color:var(--primary); }
+
+        .task-list { display:flex; flex-direction:column; gap:10px; }
+        .task-card { background:var(--surface); border:1.5px solid var(--border); border-radius:18px; padding:15px; display:flex; align-items:flex-start; gap:13px; transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1); border-left-width:4px; }
+        .task-card.completing { transform:scale(0.88) translateX(20px); opacity:0; }
+        .cb { width:26px; height:26px; border:2px solid var(--border); border-radius:50%; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); margin-top:1px; }
+        .cb:hover { border-color:var(--primary); transform:scale(1.12); }
+        .cb.checked { background:var(--primary); border-color:var(--primary); }
+        .cb.checked::after { content:'✓'; color:white; font-size:13px; font-weight:800; }
+        .task-body { flex:1; min-width:0; }
+        .task-title-text { font-weight:700; font-size:0.93rem; margin-bottom:6px; line-height:1.3; }
+        .task-meta { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+        .badge { padding:3px 10px; border-radius:100px; font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; }
+        .task-notes { font-size:0.77rem; color:var(--text-muted); margin-top:5px; }
+        .task-del { opacity:0; font-size:1rem; cursor:pointer; padding:4px; transition:opacity 0.2s; color:var(--text-light); flex-shrink:0; }
+        .task-card:hover .task-del { opacity:1; }
+
+        .empty-state { text-align:center; padding:44px 20px; }
+        .empty-icon { font-size:3.4rem; margin-bottom:12px; }
+        .empty-state h3 { font-family:'DM Serif Display',serif; font-size:1.25rem; margin-bottom:6px; }
+        .empty-state p { color:var(--text-muted); font-size:0.83rem; line-height:1.5; }
+
+        .form-card { background:var(--surface); border-radius:20px; border:1.5px solid var(--border); padding:22px; margin-bottom:16px; }
+        .input-group { margin-bottom:18px; }
+        .input-label { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); margin-bottom:8px; display:block; }
+        input[type="text"],input[type="date"],textarea,select { width:100%; padding:13px 15px; border:1.5px solid var(--border); border-radius:12px; font-family:'Nunito',sans-serif; font-size:0.9rem; background:var(--bg); color:var(--text); outline:none; transition:border-color 0.2s,background 0.2s; }
+        input:focus,textarea:focus,select:focus { border-color:var(--primary); background:var(--surface); }
+        textarea { resize:none; }
+
+        .subject-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:8px; }
+        .subject-pill { padding:9px 10px; border-radius:12px; font-size:0.77rem; font-weight:700; cursor:pointer; text-align:center; border:2px solid transparent; transition:all 0.2s; user-select:none; }
+        .subject-pill.sel { border-color:currentColor; transform:scale(1.03); }
+
+        .btn { padding:14px; border-radius:14px; font-family:'Nunito',sans-serif; font-size:0.95rem; font-weight:800; width:100%; cursor:pointer; border:none; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+        .btn:hover { transform:translateY(-2px); }
+        .btn:active { transform:scale(0.97); }
+        .btn-primary { background:var(--primary); color:white; box-shadow:0 6px 20px rgba(45,106,79,0.25); }
+        .btn-primary:hover { box-shadow:0 10px 28px rgba(45,106,79,0.35); }
+        .btn-secondary { background:var(--surface); color:var(--text); border:1.5px solid var(--border); }
+        .btn-danger { background:#FEE2E2; color:#EF4444; }
+        .btn-sm { padding:10px 18px; width:auto; font-size:0.82rem; }
+
+        .inner-tabs { display:flex; gap:6px; background:var(--surface-2); border-radius:14px; padding:5px; margin-bottom:18px; }
+        .inner-tab { flex:1; padding:9px; border-radius:10px; text-align:center; font-size:0.78rem; font-weight:800; cursor:pointer; transition:all 0.2s; color:var(--text-muted); }
+        .inner-tab.active { background:var(--surface); color:var(--primary); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+
+        .card-3d-wrap { perspective:1000px; width:100%; height:230px; margin-bottom:18px; cursor:pointer; }
+        .card-3d { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform 0.55s cubic-bezier(0.34,1.56,0.64,1); }
+        .card-3d.flipped { transform:rotateY(180deg); }
+        .card-face { position:absolute; width:100%; height:100%; backface-visibility:hidden; background:var(--surface); border-radius:20px; border:1.5px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; }
+        .card-face.back { transform:rotateY(180deg); background:var(--primary-pale); border-color:var(--primary-light); }
+        .card-face-lbl { font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:12px; }
+        .card-face.back .card-face-lbl { color:var(--primary); }
+        .card-face-text { font-family:'DM Serif Display',serif; font-size:1.15rem; line-height:1.55; color:var(--text); }
+        .card-hint { font-size:0.7rem; color:var(--text-light); margin-top:14px; }
+        .flash-progress { text-align:center; font-size:0.8rem; color:var(--text-muted); font-weight:700; margin-bottom:14px; }
+        .flash-actions { display:flex; gap:10px; margin-bottom:16px; }
+        .flash-item { background:var(--surface); border:1.5px solid var(--border); border-radius:14px; padding:13px; display:flex; justify-content:space-between; align-items:center; margin-bottom:9px; }
+        .flash-item-body { flex:1; }
+        .fi-front { font-weight:700; font-size:0.88rem; }
+        .fi-back { font-size:0.78rem; color:var(--text-muted); margin-top:2px; }
+
+        .chat-wrap { display:flex; flex-direction:column; gap:14px; margin-bottom:14px; min-height:200px; }
+        .chat-msg { display:flex; gap:10px; animation:msgIn 0.3s ease; }
+        @keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .chat-msg.user { flex-direction:row-reverse; }
+        .chat-avatar { width:32px; height:32px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; }
+        .chat-msg.ai .chat-avatar { background:var(--primary-pale); }
+        .chat-msg.user .chat-avatar { background:#E0E7FF; }
+        .chat-bubble { max-width:80%; padding:12px 15px; border-radius:18px; font-size:0.87rem; line-height:1.55; }
+        .chat-msg.ai .chat-bubble { background:var(--surface); border:1.5px solid var(--border); border-radius:4px 18px 18px 18px; }
+        .chat-msg.user .chat-bubble { background:var(--primary); color:white; border-radius:18px 4px 18px 18px; }
+        .typing-wrap { display:flex; gap:5px; align-items:center; padding:10px 0; }
+        .typing-dot { width:7px; height:7px; background:var(--text-light); border-radius:50%; animation:typeBounce 1.2s infinite; }
+        .typing-dot:nth-child(2) { animation-delay:0.2s; }
+        .typing-dot:nth-child(3) { animation-delay:0.4s; }
+        @keyframes typeBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-7px)} }
+        .chat-input-row { display:flex; gap:9px; align-items:flex-end; }
+        .chat-input-row textarea { flex:1; border-radius:18px; padding:12px 15px; font-size:0.88rem; max-height:120px; }
+        .chat-send { width:48px; height:48px; border-radius:50%; background:var(--primary); color:white; border:none; cursor:pointer; font-size:1.3rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s; }
+        .chat-send:hover { transform:scale(1.1); box-shadow:0 4px 14px rgba(45,106,79,0.35); }
+        .quick-chips { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; }
+        .q-chip { padding:7px 13px; background:var(--surface); border:1.5px solid var(--border); border-radius:100px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s; font-family:'Nunito',sans-serif; color:var(--text-muted); }
+        .q-chip:hover { border-color:var(--primary); color:var(--primary); background:var(--primary-pale); }
+
+        .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-bottom:18px; }
+        .stat-card { background:var(--surface); border:1.5px solid var(--border); border-radius:18px; padding:18px; text-align:center; }
+        .stat-icon { font-size:1.9rem; margin-bottom:7px; }
+        .stat-value { font-family:'DM Serif Display',serif; font-size:2rem; color:var(--primary); line-height:1; margin-bottom:4px; }
+        .stat-lbl { font-size:0.72rem; color:var(--text-muted); font-weight:700; }
+        .week-chart { background:var(--surface); border:1.5px solid var(--border); border-radius:18px; padding:18px; margin-bottom:16px; }
+        .chart-title { font-weight:800; font-size:0.88rem; margin-bottom:14px; }
+        .bars-row { display:flex; gap:7px; align-items:flex-end; height:90px; }
+        .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; }
+        .bar-track { flex:1; width:100%; background:var(--border); border-radius:6px; position:relative; overflow:hidden; min-height:80px; }
+        .bar-fill { position:absolute; bottom:0; width:100%; background:var(--primary); border-radius:6px; transition:height 0.9s cubic-bezier(0.34,1.56,0.64,1); }
+        .bar-lbl { font-size:0.66rem; color:var(--text-muted); font-weight:700; }
+        .quote-card { background:var(--surface); border:1.5px solid var(--border); border-radius:18px; padding:20px; }
+        .quote-lbl { font-weight:800; font-size:0.82rem; margin-bottom:10px; color:var(--text-muted); }
+        .quote-text { font-family:'DM Serif Display',serif; font-size:1rem; line-height:1.65; font-style:italic; color:var(--text); }
+
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:flex-end; justify-content:center; backdrop-filter:blur(5px); }
+        .modal-overlay.show { display:flex; animation:overlayIn 0.3s ease; }
+        @keyframes overlayIn { from{opacity:0} to{opacity:1} }
+        .modal-sheet { background:var(--surface); border-radius:28px 28px 0 0; width:100%; max-width:620px; padding:24px 22px 44px; animation:sheetUp 0.4s cubic-bezier(0.22,1,0.36,1); }
+        @keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        .modal-handle { width:40px; height:4px; background:var(--border); border-radius:100px; margin:0 auto 22px; }
+        .pomo-modal-title { font-family:'DM Serif Display',serif; font-size:1.3rem; text-align:center; margin-bottom:20px; }
+        .pomo-ring-wrap { position:relative; width:180px; height:180px; margin:0 auto 16px; }
+        .pomo-ring-wrap svg { transform:rotate(-90deg); }
+        .pomo-ring-bg { fill:none; stroke:var(--border); stroke-width:9; }
+        .pomo-ring-fill { fill:none; stroke:var(--primary); stroke-width:9; stroke-linecap:round; stroke-dasharray:502; stroke-dashoffset:0; transition:stroke-dashoffset 1s linear; }
+        .pomo-ring-inner { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; }
+        .pomo-ring-time { font-family:'DM Serif Display',serif; font-size:2.6rem; color:var(--text); line-height:1; }
+        .pomo-ring-mode { font-size:0.7rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.8px; margin-top:4px; }
+        .pomo-sessions-txt { text-align:center; font-size:0.8rem; color:var(--text-muted); font-weight:700; margin-bottom:18px; }
+        .pomo-btn-row { display:flex; gap:10px; }
+
+        .confetti-piece { position:fixed; pointer-events:none; z-index:9998; border-radius:2px; animation:confettiFall 1.6s ease-in forwards; }
+        @keyframes confettiFall { 0%{transform:translateY(-10px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+
+        nav { position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1.5px solid var(--border); display:flex; justify-content:space-around; padding:8px 0 calc(10px + env(safe-area-inset-bottom)); z-index:200; box-shadow:0 -4px 20px rgba(0,0,0,0.04); }
+        .nav-item { display:flex; flex-direction:column; align-items:center; gap:3px; padding:5px 12px; border-radius:12px; cursor:pointer; transition:all 0.2s; color:var(--text-muted); font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.2px; }
+        .nav-item.active { color:var(--primary); }
+        .nav-icon { font-size:1.35rem; transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+        .nav-item.active .nav-icon { transform:translateY(-2px) scale(1.12); }
+        .nav-dot { width:4px; height:4px; background:var(--primary); border-radius:50%; opacity:0; transition:opacity 0.2s; }
+        .nav-item.active .nav-dot { opacity:1; }
+    </style>
+</head>
+<body>
+<div id="toast"></div>
+
+<header>
+    <div class="header-inner">
+        <div class="header-brand">Dudinha<span>.vet</span></div>
+        <div class="header-right">
+            <div class="streak-badge" id="streakBadge">🔥 0 dias</div>
+            <div class="header-avatar">👩🏼‍⚕️</div>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section id="home" class="screen active">
+        <div class="calendar-wrap" id="calendarNav"></div>
+        <div class="progress-card">
+            <div class="progress-ring-wrap">
+                <svg width="66" height="66" viewBox="0 0 66 66">
+                    <circle class="progress-ring-bg" cx="33" cy="33" r="26"/>
+                    <circle class="progress-ring-fill" id="progRing" cx="33" cy="33" r="26"/>
+                </svg>
+                <div class="progress-ring-pct" id="progPct">0%</div>
+            </div>
+            <div class="progress-info">
+                <div class="progress-greeting" id="progGreeting">Bom dia! ☀️</div>
+                <div class="progress-sub" id="progSub">Carregando tarefas...</div>
+            </div>
+        </div>
+        <div class="pomo-bar" onclick="openPomodoro()">
+            <div class="pomo-bar-left">
+                <span style="font-size:1.5rem;">🍅</span>
+                <div><div class="pomo-label">Pomodoro</div><div class="pomo-sublabel">Foco total • 25 minutos</div></div>
+            </div>
+            <div class="pomo-time" id="pomoQuick">25:00</div>
+        </div>
+        <div class="section-header">
+            <div class="section-title">Tarefas do dia</div>
+            <div class="section-sub" id="taskCounter">0 tarefas</div>
+        </div>
+        <div class="task-list" id="taskList"></div>
+    </section>
+
+    <section id="planner" class="screen">
+        <div class="section-title" style="margin-bottom:18px;">Novo Estudo ✏️</div>
+        <div class="form-card">
+            <div class="input-group"><label class="input-label">Título da tarefa</label><input type="text" id="newTitle" placeholder="Ex: Anatomia dos Ruminantes"></div>
+            <div class="input-group"><label class="input-label">Data</label><input type="date" id="newDate"></div>
+            <div class="input-group"><label class="input-label">Matéria</label><div class="subject-grid" id="subjectGrid"></div></div>
+            <div class="input-group"><label class="input-label">Tipo de tarefa</label><select id="newTag"><option value="urgente">🔴 Urgente / Prova</option><option value="revisao">🟡 Revisão</option><option value="leitura">🔵 Leitura</option><option value="pratica">🟣 Prática / Lab</option></select></div>
+            <div class="input-group"><label class="input-label">Notas (opcional)</label><textarea id="newNotes" rows="2" placeholder="Algum detalhe extra..."></textarea></div>
+            <button class="btn btn-primary" onclick="addTask()">Salvar tarefa 🐾</button>
+        </div>
+    </section>
+
+    <section id="flash" class="screen">
+        <div class="section-title" style="margin-bottom:14px;">Flashcards 🃏</div>
+        <div class="inner-tabs">
+            <div class="inner-tab active" onclick="fTab('study',this)">Estudar</div>
+            <div class="inner-tab" onclick="fTab('create',this)">Criar</div>
+            <div class="inner-tab" onclick="fTab('manage',this)">Biblioteca</div>
+        </div>
+        <div id="fStudy"></div>
+        <div id="fCreate" style="display:none">
+            <div class="form-card">
+                <div class="input-group"><label class="input-label">Frente — Pergunta</label><textarea id="fFront" rows="2" placeholder="Ex: Qual a função do pâncreas endócrino?"></textarea></div>
+                <div class="input-group"><label class="input-label">Verso — Resposta</label><textarea id="fBack" rows="3" placeholder="Ex: Produz insulina (células beta) e glucagon (células alfa)..."></textarea></div>
+                <div class="input-group"><label class="input-label">Matéria</label><select id="fSubjSel"></select></div>
+                <button class="btn btn-primary" onclick="createFlash()">Criar flashcard 🃏</button>
+            </div>
+        </div>
+        <div id="fManage" style="display:none"></div>
+    </section>
+
+    <section id="ai" class="screen">
+        <div class="section-title" style="margin-bottom:4px;">Tutor IA 🤖</div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">Seu professor de veterinária pessoal</p>
+        <div class="quick-chips">
+            <div class="q-chip" onclick="qp('Resuma este texto para mim: ')">📄 Resumir</div>
+            <div class="q-chip" onclick="qp('Crie 5 questões de múltipla escolha sobre: ')">📝 Questões</div>
+            <div class="q-chip" onclick="qp('Explique de forma simples o conceito de: ')">💡 Explicar</div>
+            <div class="q-chip" onclick="qp('Me dê um mnemônico para lembrar: ')">🧠 Mnemônico</div>
+            <div class="q-chip" onclick="qp('Compare e diferencie: ')">⚖️ Comparar</div>
+            <div class="q-chip" onclick="qp('Liste as principais causas de: ')">📋 Causas</div>
+        </div>
+        <div class="chat-wrap" id="chatWrap">
+            <div class="chat-msg ai">
+                <div class="chat-avatar">🐾</div>
+                <div class="chat-bubble">Olá Dudinha! 👩🏼‍⚕️ Sou seu tutor de Medicina Veterinária. Me pergunte qualquer coisa — anatomia, fisiologia, clínica, farmacologia... Estou aqui para te ajudar a se tornar uma vet incrível! 🐾</div>
+            </div>
+        </div>
+        <div class="chat-input-row">
+            <textarea id="chatInput" placeholder="Digite sua pergunta..." rows="1" onkeydown="chatKey(event)"></textarea>
+            <button class="chat-send" onclick="sendChat()">➤</button>
+        </div>
+    </section>
+
+    <section id="stats" class="screen">
+        <div class="section-title" style="margin-bottom:18px;">Meu Progresso 📊</div>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-value" id="stStreak">0</div><div class="stat-lbl">Dias seguidos</div></div>
+            <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="stTotal">0</div><div class="stat-lbl">Concluídas total</div></div>
+            <div class="stat-card"><div class="stat-icon">🃏</div><div class="stat-value" id="stCards">0</div><div class="stat-lbl">Flashcards criados</div></div>
+            <div class="stat-card"><div class="stat-icon">🍅</div><div class="stat-value" id="stPomos">0</div><div class="stat-lbl">Sessões Pomodoro</div></div>
+        </div>
+        <div class="week-chart">
+            <div class="chart-title">Tarefas concluídas esta semana</div>
+            <div class="bars-row" id="weekBars"></div>
+        </div>
+        <div class="quote-card">
+            <div class="quote-lbl">💪 Frase do dia</div>
+            <div class="quote-text" id="quoteEl"></div>
+        </div>
+    </section>
+</main>
+
+<div class="modal-overlay" id="pomoModal" onclick="overlayClose(event)">
+    <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="pomo-modal-title" id="pomoTitle">Foco Total 🍅</div>
+        <div class="pomo-ring-wrap">
+            <svg width="180" height="180" viewBox="0 0 180 180">
+                <circle class="pomo-ring-bg" cx="90" cy="90" r="80"/>
+                <circle class="pomo-ring-fill" id="pomoRing" cx="90" cy="90" r="80"/>
+            </svg>
+            <div class="pomo-ring-inner">
+                <div class="pomo-ring-time" id="pomoDisplay">25:00</div>
+                <div class="pomo-ring-mode" id="pomoMode">FOCO</div>
+            </div>
+        </div>
+        <div class="pomo-sessions-txt" id="pomoSess">🍅 0 sessões completas hoje</div>
+        <div class="pomo-btn-row">
+            <button class="btn btn-secondary btn-sm" onclick="resetPomo()">↩ Reset</button>
+            <button class="btn btn-primary" id="pomoBtn" onclick="togglePomo()">▶ Iniciar</button>
+            <button class="btn btn-secondary btn-sm" onclick="closePomo()">✕ Fechar</button>
+        </div>
+    </div>
+</div>
+
+<nav>
+    <div class="nav-item active" onclick="switchTab('home',this)"><div class="nav-icon">📅</div><div>Hoje</div><div class="nav-dot"></div></div>
+    <div class="nav-item" onclick="switchTab('planner',this)"><div class="nav-icon">➕</div><div>Adicionar</div><div class="nav-dot"></div></div>
+    <div class="nav-item" onclick="switchTab('flash',this)"><div class="nav-icon">🃏</div><div>Flash</div><div class="nav-dot"></div></div>
+    <div class="nav-item" onclick="switchTab('ai',this)"><div class="nav-icon">🤖</div><div>Tutor IA</div><div class="nav-dot"></div></div>
+    <div class="nav-item" onclick="switchTab('stats',this)"><div class="nav-icon">📊</div><div>Stats</div><div class="nav-dot"></div></div>
+</nav>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CHAVE DA API DO GOOGLE GEMINI
+// ══════════════════════════════════════════════════════════════
+const GEMINI_API_KEY = 'AIzaSyBA_a_VbfQWDRr53cw6dgekYSRRhGnW19c';
+
+const SUBJECTS=[
+    {id:'anat', n:'🦴 Anatomia',      c:'#7C3AED',bg:'#EDE9FE'},
+    {id:'fisio',n:'💉 Fisiologia',    c:'#0EA5E9',bg:'#E0F2FE'},
+    {id:'farm', n:'💊 Farmacologia',  c:'#F59E0B',bg:'#FEF3C7'},
+    {id:'pato', n:'🔬 Patologia',     c:'#EF4444',bg:'#FEE2E2'},
+    {id:'clin', n:'🩺 Clínica Méd.',  c:'#10B981',bg:'#D1FAE5'},
+    {id:'cirg', n:'🔪 Cirurgia',      c:'#EC4899',bg:'#FCE7F3'},
+    {id:'prod', n:'🐄 Zootecnia',     c:'#F97316',bg:'#FFEDD5'},
+    {id:'nutri',n:'🥗 Nutrição',      c:'#84CC16',bg:'#ECFCCB'},
+    {id:'micro',n:'🧬 Microbiologia', c:'#6366F1',bg:'#EEF2FF'},
+    {id:'outros',n:'🐾 Outros',       c:'#6B7280',bg:'#F3F4F6'},
+];
+const TAG_META={
+    urgente:{label:'Urgente',c:'#EF4444',bg:'#FEE2E2'},
+    revisao:{label:'Revisão',c:'#F59E0B',bg:'#FEF3C7'},
+    leitura:{label:'Leitura',c:'#3B82F6',bg:'#EFF6FF'},
+    pratica:{label:'Prática',c:'#8B5CF6',bg:'#EDE9FE'},
+};
+const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const QUOTES=[
+    '"O sucesso é a soma de pequenos esforços repetidos dia após dia." — Robert Collier',
+    '"Eu te amo tanto que nem a física explica  <3',
+    '"Do seu melhor amigo pra melhor pessoa do mundo',
+    '"A medicina veterinária cuida de quem não pode falar. Por isso precisa escutar com o coração.", 🐾',
+    '"Estudar é cultivar a mente. Persistir é deixá-la florescer." 🌱',
+    '"Cada página virada é um passo mais perto do jaleco." 👩🏼‍⚕️',
+    '"Cuide dos animais com a mesma dedicação com que cuida dos seus sonhos." 🐕',
+    '"A grandeza não vem de um único esforço, mas de hábitos construídos com amor." 💚',
+    '"Um veterinário não salva apenas animais. Salva famílias inteiras." 🏠',
+];
+
+function load(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+
+let tasks     =load('dv2_tasks',[]);
+let flashcards=load('dv2_flash',[]);
+let doneLog   =load('dv2_done', []);
+let pomoSess  =load('dv2_pomo', 0);
+let selSubj   ='outros';
+let aiHistory =[];
+
+const _now=new Date(),_tz=_now.getTimezoneOffset()*60000;
+let selDate=new Date(_now.getTime()-_tz).toISOString().split('T')[0];
+
+let pomo={active:false,mode:'focus',left:25*60,total:25*60,iv:null};
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2700);}
+function fmtDate(d){const o=d.getTimezoneOffset()*60000;return new Date(d.getTime()-o).toISOString().split('T')[0];}
+function getSubj(id){return SUBJECTS.find(s=>s.id===id)||SUBJECTS[SUBJECTS.length-1];}
+
+function switchTab(id,el){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+    if(id==='home'){renderCal();renderTasks();}
+    if(id==='flash')renderFlash();
+    if(id==='stats')renderStats();
+}
+
+function renderCal(){
+    const wrap=document.getElementById('calendarNav');wrap.innerHTML='';
+    const today=new Date();
+    for(let i=0;i<14;i++){
+        const d=new Date(today);d.setDate(today.getDate()+i);
+        const fmt=fmtDate(d),hasTasks=tasks.some(t=>t.date===fmt),active=fmt===selDate;
+        const pill=document.createElement('div');
+        pill.className='day-pill'+(active?' active':'');
+        pill.onclick=()=>{selDate=fmt;renderCal();renderTasks();};
+        pill.innerHTML=`<div class="day-name">${i===0?'Hoje':DIAS[d.getDay()]}</div><div class="day-num">${d.getDate()}</div>${hasTasks?'<div class="day-dot"></div>':'<div class="day-spacer"></div>'}`;
+        wrap.appendChild(pill);
+    }
+}
+
+function renderTasks(){
+    const list=document.getElementById('taskList'),counter=document.getElementById('taskCounter');
+    const dayTasks=tasks.filter(t=>t.date===selDate);
+    counter.textContent=`${dayTasks.length} tarefa${dayTasks.length!==1?'s':''}`;
+    const doneToday=doneLog.filter(l=>l.date===selDate).reduce((a,b)=>a+b.count,0);
+    const total=dayTasks.length+doneToday,pct=total>0?Math.round((doneToday/total)*100):0;
+    document.getElementById('progPct').textContent=pct+'%';
+    const circ=2*Math.PI*26,ring=document.getElementById('progRing');
+    ring.style.strokeDasharray=circ;ring.style.strokeDashoffset=circ-(circ*pct/100);
+    const sub=document.getElementById('progSub');
+    if(!total)sub.textContent='Nenhuma tarefa hoje. Adicione e comece! 💪';
+    else if(!dayTasks.length)sub.textContent=`Dia concluído! ${doneToday} tarefa${doneToday>1?'s':''} feita${doneToday>1?'s':''}! 🎉`;
+    else sub.textContent=`${dayTasks.length} pendente${dayTasks.length>1?'s':''} · ${doneToday} concluída${doneToday>1?'s':''}`;
+    if(!dayTasks.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">${doneToday>0?'🎊':'📚'}</div><h3>${doneToday>0?'Dia completo!':'Tudo em dia!'}</h3><p>${doneToday>0?'Excelente trabalho hoje, Dudinha! 🌟':'Nenhuma tarefa para este dia ainda.'}</p></div>`;return;}
+    list.innerHTML='';
+    dayTasks.forEach(task=>{
+        const subj=getSubj(task.subject),tag=TAG_META[task.tag]||TAG_META.leitura;
+        const card=document.createElement('div');card.className='task-card';card.style.borderLeftColor=subj.c;
+        card.innerHTML=`<div class="cb" onclick="completeTask('${task.id}',this,this.closest('.task-card'))"></div><div class="task-body"><div class="task-title-text">${task.title}</div><div class="task-meta"><span class="badge" style="background:${subj.bg};color:${subj.c};">${subj.n}</span><span class="badge" style="background:${tag.bg};color:${tag.c};">${tag.label}</span></div>${task.notes?`<div class="task-notes">${task.notes}</div>`:''}</div><div class="task-del" onclick="delTask('${task.id}')">🗑️</div>`;
+        list.appendChild(card);
+    });
+}
+
+function addTask(){
+    const title=document.getElementById('newTitle').value.trim(),date=document.getElementById('newDate').value,tag=document.getElementById('newTag').value,notes=document.getElementById('newNotes').value.trim();
+    if(!title||!date){toast('Preencha o título e a data! 📝');return;}
+    tasks.push({id:Date.now()+'',title,date,tag,notes,subject:selSubj});
+    save('dv2_tasks',tasks);
+    document.getElementById('newTitle').value='';document.getElementById('newNotes').value='';
+    selDate=date;toast('Tarefa adicionada! 🐾');
+    switchTab('home',document.querySelector('.nav-item'));
+}
+
+function delTask(id){tasks=tasks.filter(t=>t.id!==id);save('dv2_tasks',tasks);renderCal();renderTasks();toast('Tarefa removida.');}
+
+function completeTask(id,cbEl,cardEl){
+    cbEl.classList.add('checked');cardEl.classList.add('completing');
+    setTimeout(()=>{
+        tasks=tasks.filter(t=>t.id!==id);
+        const ex=doneLog.find(l=>l.date===selDate);
+        if(ex)ex.count++;else doneLog.push({date:selDate,count:1});
+        save('dv2_tasks',tasks);save('dv2_done',doneLog);
+        calcStreak();renderCal();renderTasks();spawnConfetti();toast('Incrível! Tarefa concluída ✨');
+    },380);
+}
+
+function buildSubjectGrid(){
+    const grid=document.getElementById('subjectGrid'),sel=document.getElementById('fSubjSel');
+    if(grid)grid.innerHTML='';if(sel)sel.innerHTML='';
+    SUBJECTS.forEach(s=>{
+        if(grid){const pill=document.createElement('div');pill.className='subject-pill'+(s.id===selSubj?' sel':'');pill.style.background=s.bg;pill.style.color=s.c;pill.textContent=s.n;pill.onclick=()=>{selSubj=s.id;document.querySelectorAll('.subject-pill').forEach(p=>p.classList.remove('sel'));pill.classList.add('sel');};grid.appendChild(pill);}
+        if(sel){const o=document.createElement('option');o.value=s.id;o.textContent=s.n;sel.appendChild(o);}
+    });
+}
+
+function calcStreak(){
+    const today=new Date();let streak=0;
+    for(let i=0;i<365;i++){const d=new Date(today);d.setDate(today.getDate()-i);if(doneLog.some(l=>l.date===fmtDate(d)&&l.count>0))streak++;else if(i>0)break;}
+    save('dv2_streak',streak);
+    document.getElementById('streakBadge').textContent=`🔥 ${streak} dia${streak!==1?'s':''}`;
+    const el=document.getElementById('stStreak');if(el)el.textContent=streak;
+    return streak;
+}
+
+let fSession={cards:[],idx:0,known:0,unknown:0};
+
+function fTab(tab,el){
+    document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+    document.getElementById('fStudy').style.display=tab==='study'?'block':'none';
+    document.getElementById('fCreate').style.display=tab==='create'?'block':'none';
+    document.getElementById('fManage').style.display=tab==='manage'?'block':'none';
+    if(tab==='study')renderFlash();if(tab==='manage')renderFlashList();
+}
+
+function renderFlash(){
+    const c=document.getElementById('fStudy');
+    if(!flashcards.length){c.innerHTML=`<div class="empty-state"><div class="empty-icon">🃏</div><h3>Nenhum flashcard ainda!</h3><p>Crie seus flashcards na aba "Criar" para estudar aqui.</p></div>`;return;}
+    fSession={cards:[...flashcards].sort(()=>Math.random()-0.5),idx:0,known:0,unknown:0};renderCard();
+}
+
+function renderCard(){
+    const c=document.getElementById('fStudy'),s=fSession;
+    if(s.idx>=s.cards.length){const total=s.known+s.unknown,pct=total>0?Math.round((s.known/total)*100):0;c.innerHTML=`<div class="empty-state"><div class="empty-icon">🎊</div><h3>Sessão concluída!</h3><p>Você acertou <strong>${s.known}</strong> de <strong>${total}</strong> cartas (${pct}%)</p><br><button class="btn btn-primary" style="width:auto;padding:12px 28px;" onclick="renderFlash()">Estudar novamente</button></div>`;return;}
+    const fc=s.cards[s.idx],subj=getSubj(fc.subject);
+    c.innerHTML=`<div class="flash-progress">${s.idx+1} / ${s.cards.length} &nbsp;·&nbsp; ✅ ${s.known} &nbsp;·&nbsp; ❌ ${s.unknown}</div><div class="card-3d-wrap" onclick="flipCard()"><div class="card-3d" id="card3d"><div class="card-face"><div class="card-face-lbl">Pergunta</div><div class="card-face-text">${fc.front}</div><div class="card-hint">👇 Toque para ver a resposta</div></div><div class="card-face back"><div class="card-face-lbl">Resposta</div><div class="card-face-text">${fc.back}</div></div></div></div><div style="margin-bottom:10px;"><span class="badge" style="background:${subj.bg};color:${subj.c};">${subj.n}</span></div><div class="flash-actions"><button class="btn btn-danger" onclick="markCard(false)" style="flex:1;">❌ Não sei</button><button class="btn btn-primary" onclick="markCard(true)" style="flex:1;">✅ Sei!</button></div>`;
+}
+
+function flipCard(){document.getElementById('card3d')?.classList.toggle('flipped');}
+function markCard(known){if(known)fSession.known++;else fSession.unknown++;fSession.idx++;renderCard();}
+
+function createFlash(){
+    const front=document.getElementById('fFront').value.trim(),back=document.getElementById('fBack').value.trim(),subject=document.getElementById('fSubjSel').value;
+    if(!front||!back){toast('Preencha frente e verso! 📝');return;}
+    flashcards.push({id:Date.now()+'',front,back,subject});save('dv2_flash',flashcards);
+    document.getElementById('fFront').value='';document.getElementById('fBack').value='';toast('Flashcard criado! 🃏');
+}
+
+function renderFlashList(){
+    const c=document.getElementById('fManage');
+    if(!flashcards.length){c.innerHTML=`<div class="empty-state"><div class="empty-icon">🃏</div><h3>Nenhum flashcard</h3></div>`;return;}
+    c.innerHTML='';
+    flashcards.forEach(fc=>{const subj=getSubj(fc.subject);const div=document.createElement('div');div.className='flash-item';div.innerHTML=`<div class="flash-item-body"><div class="fi-front">${fc.front}</div><div class="fi-back">${fc.back}</div><span class="badge" style="background:${subj.bg};color:${subj.c};margin-top:6px;">${subj.n}</span></div><span style="cursor:pointer;font-size:1.1rem;padding:4px;color:var(--text-muted);" onclick="delFlash('${fc.id}')">🗑️</span>`;c.appendChild(div);});
+}
+
+function delFlash(id){flashcards=flashcards.filter(f=>f.id!==id);save('dv2_flash',flashcards);renderFlashList();toast('Flashcard removido.');}
+
+// ── AI CHAT ──────────────────────────────────────────
+const VET_SYSTEM=`Você é um tutor especializado em Medicina Veterinária para estudantes universitários brasileiros chamada de "VetTutor".
+Você é amigável, didática e usa exemplos práticos do cotidiano veterinário.
+Use emojis com moderação 🐾. Seja objetiva. Para textos longos, use tópicos e negrito.
+Ao criar questões de múltipla escolha use:
+**Questão X:** [pergunta]
+A) ... B) ... C) ... D) ...
+✅ **Resposta:** X) [explicação breve]
+Você domina: anatomia, fisiologia, farmacologia, patologia, clínica de pequenos e grandes animais, cirurgia, reprodução, nutrição, zootecnia, microbiologia e parasitologia.
+Responda sempre em português brasileiro.`;
+
+function qp(text){document.getElementById('chatInput').value=text;document.getElementById('chatInput').focus();}
+function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
+
+async function sendChat(){
+    const inp = document.getElementById('chatInput'), txt = inp.value.trim();
+    if (!txt) return;
+    inp.value = '';
+
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'SUA_CHAVE_AQUI') {
+        addBubble('assistant', '⚠️ Configure a sua chave da API do Google Gemini! Edite a variável GEMINI_API_KEY no script.');
+        return;
+    }
+
+    addBubble('user', txt);
+    aiHistory.push({ role: 'user', content: txt });
+    const typId = addTyping();
+
+    try {
+        // O Gemini usa 'model' em vez de 'assistant', e exige uma estrutura com 'parts'
+        const geminiMessages = aiHistory.map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+        }));
+
+        // URL oficial da API do Gemini (usando o modelo rápido flash)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                systemInstruction: { parts: [{ text: VET_SYSTEM }] },
+                contents: geminiMessages
+            })
+        });
+        
+        const data = await resp.json();
+        
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+
+        const reply = data.candidates[0].content.parts[0].text || 'Não consegui gerar resposta. Tente novamente. 🐾';
+        
+        removeTyping(typId);
+        addBubble('assistant', reply);
+        aiHistory.push({ role: 'assistant', content: reply });
+    } catch(e) {
+        removeTyping(typId);
+        console.error(e);
+        addBubble('assistant', '⚠️ Erro na API do Gemini: ' + e.message);
+    }
+}
+
+function addBubble(role,text){
+    const wrap=document.getElementById('chatWrap'),div=document.createElement('div');
+    div.className=`chat-msg ${role==='assistant'?'ai':'user'}`;
+    const fmt=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>');
+    div.innerHTML=`<div class="chat-avatar">${role==='assistant'?'🐾':'👩🏼‍⚕️'}</div><div class="chat-bubble">${fmt}</div>`;
+    wrap.appendChild(div);div.scrollIntoView({behavior:'smooth',block:'end'});
+}
+
+function addTyping(){
+    const id='typ_'+Date.now(),wrap=document.getElementById('chatWrap'),div=document.createElement('div');
+    div.className='chat-msg ai';div.id=id;
+    div.innerHTML=`<div class="chat-avatar">🐾</div><div class="chat-bubble"><div class="typing-wrap"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+    wrap.appendChild(div);div.scrollIntoView({behavior:'smooth',block:'end'});return id;
+}
+function removeTyping(id){document.getElementById(id)?.remove();}
+
+// ── POMODORO ──────────────────────────────────────────
+function openPomodoro(){document.getElementById('pomoModal').classList.add('show');updatePomoUI();}
+function closePomo(){document.getElementById('pomoModal').classList.remove('show');}
+function overlayClose(e){if(e.target.id==='pomoModal')closePomo();}
+
+function togglePomo(){
+    const btn=document.getElementById('pomoBtn');
+    if(pomo.active){clearInterval(pomo.iv);pomo.active=false;btn.textContent='▶ Retomar';}
+    else{
+        pomo.active=true;btn.textContent='⏸ Pausar';
+        pomo.iv=setInterval(()=>{
+            pomo.left--;updatePomoUI();
+            if(pomo.left<=0){
+                clearInterval(pomo.iv);pomo.active=false;btn.textContent='▶ Iniciar';
+                if(pomo.mode==='focus'){
+                    pomoSess++;save('dv2_pomo',pomoSess);toast('🍅 Foco concluído! Hora de descansar.');
+                    pomo.mode='break';pomo.left=5*60;pomo.total=5*60;
+                    document.getElementById('pomoTitle').textContent='Descanso 😌';
+                    document.getElementById('pomoMode').textContent='PAUSA';
+                    document.getElementById('pomoRing').style.stroke='#F4A261';
+                }else{
+                    toast('☕ Pausa terminada! Bora focar!');
+                    pomo.mode='focus';pomo.left=25*60;pomo.total=25*60;
+                    document.getElementById('pomoTitle').textContent='Foco Total 🍅';
+                    document.getElementById('pomoMode').textContent='FOCO';
+                    document.getElementById('pomoRing').style.stroke='var(--primary)';
+                }
+                updatePomoUI();
+            }
+        },1000);
+    }
+}
+
+function resetPomo(){
+    clearInterval(pomo.iv);pomo={active:false,mode:'focus',left:25*60,total:25*60,iv:null};
+    document.getElementById('pomoBtn').textContent='▶ Iniciar';
+    document.getElementById('pomoTitle').textContent='Foco Total 🍅';
+    document.getElementById('pomoMode').textContent='FOCO';
+    document.getElementById('pomoRing').style.stroke='var(--primary)';
+    updatePomoUI();
+}
+
+function updatePomoUI(){
+    const m=String(Math.floor(pomo.left/60)).padStart(2,'0'),s=String(pomo.left%60).padStart(2,'0'),str=`${m}:${s}`;
+    document.getElementById('pomoDisplay').textContent=str;document.getElementById('pomoQuick').textContent=str;
+    document.getElementById('pomoSess').textContent=`🍅 ${pomoSess} sessão(ões) completa(s)`;
+    const circ=2*Math.PI*80,ring=document.getElementById('pomoRing');
+    ring.style.strokeDasharray=circ;ring.style.strokeDashoffset=circ*(1-pomo.left/pomo.total);
+}
+
+// ── STATS ──────────────────────────────────────────
+function renderStats(){
+    const streak=calcStreak(),total=doneLog.reduce((a,b)=>a+b.count,0);
+    document.getElementById('stStreak').textContent=streak;document.getElementById('stTotal').textContent=total;
+    document.getElementById('stCards').textContent=flashcards.length;document.getElementById('stPomos').textContent=pomoSess;
+    const today=new Date(),barsWrap=document.getElementById('weekBars');
+    barsWrap.innerHTML='';let maxC=1;const counts=[];
+    for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(today.getDate()-i);const cnt=doneLog.filter(l=>l.date===fmtDate(d)).reduce((a,b)=>a+b.count,0);counts.push({d,cnt});if(cnt>maxC)maxC=cnt;}
+    counts.forEach(({d,cnt})=>{const pct=Math.min((cnt/maxC)*100,100);const col=document.createElement('div');col.className='bar-col';col.innerHTML=`<div class="bar-track"><div class="bar-fill" style="height:${pct}%"></div></div><div class="bar-lbl">${DIAS[d.getDay()]}</div>`;barsWrap.appendChild(col);});
+    document.getElementById('quoteEl').textContent=QUOTES[Math.floor(Math.random()*QUOTES.length)];
+}
+
+// ── CONFETTI ──────────────────────────────────────────
+function spawnConfetti(){
+    const cols=['#2D6A4F','#52B788','#F4A261','#E76F51','#95D5B2','#FFD166'];
+    for(let i=0;i<22;i++){const el=document.createElement('div');el.className='confetti-piece';el.style.left=Math.random()*100+'vw';el.style.background=cols[Math.floor(Math.random()*cols.length)];el.style.animationDelay=Math.random()*0.6+'s';const sz=7+Math.random()*9;el.style.width=el.style.height=sz+'px';el.style.borderRadius=Math.random()>0.5?'50%':'2px';document.body.appendChild(el);setTimeout(()=>el.remove(),2200);}
+}
+
+// ── INIT ──────────────────────────────────────────
+window.onload=()=>{
+    document.getElementById('newDate').value=selDate;
+    buildSubjectGrid();renderCal();renderTasks();updatePomoUI();calcStreak();
+    const h=new Date().getHours();
+    document.getElementById('progGreeting').textContent=h<12?'Bom dia, Dudinha! ☀️':h<18?'Boa tarde, Dudinha! 🌤️':'Boa noite, Dudinha! 🌙';
+};
+</script>
+</body>
+</html>
